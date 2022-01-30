@@ -50,15 +50,17 @@ def add_tree_to_xml(xml):
 
 
 def pob_profile_to_pob_code(items_data, tree_data):
+    class_ids = ["Scion", "Marauder", "Ranger", "Witch", "Duelist", "Templar", "Shadow"]
+
     root = ET.Element("PathOfBuilding")
     ET.SubElement(
         root,
         "Build",
-        level="99",
+        level=items_data["character"]["level"],
         targetVersion="3_17",
         bandit="None",
-        className="Marauder",
-        ascendClassName="Juggernaut",
+        className=class_ids[items_data["character"]["classId"]],
+        ascendClassName=items_data["character"]["class"],
         mainSocketGroup="1",
         viewMode="CALCS",
     )
