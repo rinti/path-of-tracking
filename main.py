@@ -87,12 +87,12 @@ def add_skills_to_xml(xml, items):
 
 
 def fix_name(name):
-    if "Weapon" in name or "Ring" in name:
-        return f"{name} 1"
     if name == "Weapon2":
         return "Weapon 1 Swap"
     if name == "Ring2":
         return "Ring 2"
+    if "Weapon" in name or "Ring" in name:
+        return f"{name} 1"
     if name == "Offhand":
         return "Weapon 2"
     if name == "Offhand2":
