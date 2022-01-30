@@ -38,7 +38,70 @@ def pob_code_to_xml(pobcode):
 
 
 def add_skills_to_xml(xml, items):
-    ET.SubElement(xml, "Skills")
+    skills = ET.SubElement(
+        xml,
+        "Skills",
+        defaultGemQuality="nil",
+        defaultGemLevel="nil",
+        sortGemsByDPS="true",
+    )
+    for item in items:
+        if "socketedItems" in item:
+            skill = ET.SubElement(
+                skills,
+                "Skill",
+                mainActiveSkillCalcs="nil",
+                mainActiveSkill="nil",
+                enabled="true",
+                slot=fix_name(item["inventoryId"]),
+            )
+            for socketed_item in item["socketedItems"]:
+                if socketed_item["frameType"] != 4:
+                    continue
+
+                gem_name = socketed_item["typeLine"]
+                if "Support" in gem_name:
+                    fixed_name = gem_name.replace(" Support", "")
+                    gem_name = f"Support {fixed_name}"
+                    name_spec = gem_name.replace("Support ", "")
+                else:
+                    name_spec = gem_name
+
+                skill_id = gem_name.replace(" ", "")
+
+                level = "1"
+                quality = "0"
+
+                for property in socketed_item["properties"]:
+                    pass
+
+                ET.SubElement(
+                    skill,
+                    "Gem",
+                    level=str(level),
+                    skillId=str(skill_id),
+                    quality=str(quality),
+                    enabled="true",
+                    nameSpec=str(name_spec),
+                )
+
+
+def fix_name(name):
+    if "Weapon" in name or "Ring" in name:
+        return f"{name} 1"
+    if name == "Weapon2":
+        return "Weapon 1 Swap"
+    if name == "Ring2":
+        return "Ring 2"
+    if name == "Offhand":
+        return "Weapon 2"
+    if name == "Offhand2":
+        return "Weapon 2 Swap"
+    if name == "Helm":
+        return "Helmet"
+    if name == "BodyArmour":
+        return "Body Armour"
+    return name
 
 
 def add_items_to_xml(xml):
@@ -56,7 +119,7 @@ def pob_profile_to_pob_code(items_data, tree_data):
     ET.SubElement(
         root,
         "Build",
-        level=items_data["character"]["level"],
+        level=str(items_data["character"]["level"]),
         targetVersion="3_17",
         bandit="None",
         className=class_ids[items_data["character"]["classId"]],
@@ -66,7 +129,7 @@ def pob_profile_to_pob_code(items_data, tree_data):
     )
     ET.SubElement(root, "Import")
     ET.SubElement(root, "Calcs")
-    all_items = [*items_data["items"], *tree_data["tree_data"]]
+    all_items = [*items_data["items"], *tree_data["items"]]
     add_skills_to_xml(root, all_items)
     add_items_to_xml(root)
     add_tree_to_xml(root)
@@ -87,8 +150,8 @@ def pob_profile_to_pob_code(items_data, tree_data):
     tree.write("testing.xml")
 
 
-print(fetch_items("roxalot", "HodorHeist")["character"])
-print(fetch_items("roxalot", "HodorHeist")["items"])
+# print(fetch_items("roxalot", "HodorHeist")["character"])
+# print(fetch_items("roxalot", "HodorHeist")["items"])
 # print(fetch_passives("aaaaroxalot", "HodorHeist"))
 
 acc = "roxalot"
