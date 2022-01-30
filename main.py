@@ -64,7 +64,7 @@ def pob_profile_to_pob_code(items_data, tree_data):
     )
     ET.SubElement(root, "Import")
     ET.SubElement(root, "Calcs")
-    all_items = [*items_data["items"], *items_data["tree_data"]]
+    all_items = [*items_data["items"], *tree_data["tree_data"]]
     add_skills_to_xml(root, all_items)
     add_items_to_xml(root)
     add_tree_to_xml(root)
