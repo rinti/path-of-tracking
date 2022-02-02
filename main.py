@@ -8,6 +8,7 @@ import xml.etree.cElementTree as ET
 PASSIVES_URL = "https://www.pathofexile.com/character-window/get-passive-skills?character={character}&accountName={account}"
 ITEMS_URL = "https://www.pathofexile.com/character-window/get-items?character={character}&accountName={account}"
 RARITY = ["NORMAL", "MAGIC", "RARE", "UNIQUE"]
+VERSION = "3.17"
 
 
 def fetch_passives(account: str, character: str) -> dict:
@@ -146,12 +147,12 @@ def add_items_to_xml(xml, items: List):
         xml_item = ET.SubElement(xml_items, "Item")
         xml_item.text = "\r\n" + item_string
 
-        #### Slots
-        for i, slot in enumerate(slots):
-            if slot == "PassiveJewels":
-                continue
+    #### Slots
+    for i, slot in enumerate(slots):
+        if slot == "PassiveJewels":
+            continue
 
-            ET.SubElement(xml_items, "Slot", name=slot, itemId=str(i))
+        ET.SubElement(xml_items, "Slot", name=slot, itemId=str(i))
 
     #### Abyss
     items_with_abyss_sockets = ["BodyArmour", "Belt", "Helm", "Boots", "Gloves"]
@@ -214,8 +215,78 @@ def fix_name(name):
     return name
 
 
-def add_tree_to_xml(xml):
-    ET.SubElement(xml, "Tree")
+def get_jewel_coords(tree_data):
+    jewel_ids = {
+        0: {"location": "Marauder", "id": 26725},
+        1: {"location": "Templar_Witch", "id": 36634},
+        2: {"location": "Shadow_Ranger", "id": 33989},
+        3: {"location": "Witch_Shadow", "id": 41263},
+        4: {"location": "Ranger", "id": 60735},
+        5: {"location": "Shadow", "id": 61834},
+        6: {"location": "Scion_Bottom", "id": 31683},
+        7: {"location": "Duelist_Marauder", "id": 28475},
+        8: {"location": "Scion_Left", "id": 6230},
+        9: {"location": "Scion_Right", "id": 48768},
+        10: {"location": "Ranger_Duelist", "id": 34483},
+        11: {"location": "Templar_Witch2", "id": 7960},
+        12: {"location": "Ranger_Duelist2", "id": 46882},
+        13: {"location": "Marauder_Templar2", "id": 55190},
+        14: {"location": "Witch", "id": 61419},
+        15: {"location": "Duelist_Marauder2", "id": 2491},
+        16: {"location": "Duelist", "id": 54127},
+        17: {"location": "Shadow_Ranger2", "id": 32763},
+        18: {"location": "Templar", "id": 26196},
+        19: {"location": "Marauder_Templar", "id": 33631},
+        20: {"location": "Witch_Shadow2", "id": 21984},
+    }
+    jewels = dict()
+
+    for i, item in enumerate(tree_data["items"]):
+        if item["x"] > 20:
+            continue
+
+        jewel_id = jewel_ids[item["x"]]["id"]
+        jewels[jewel_id] = i + 1
+
+    return jewels
+
+
+def get_tree_url(char_details, passives):
+    header = [
+        0,
+        0,
+        0,
+        4,
+        int(char_details["classId"]),
+        int(char_details["ascendancyClass"]),
+        0,
+    ]
+    bytes = bytearray(header)
+    for node in passives:
+        bytes.append(node // 256)
+        bytes.append(node % 256)
+
+    return (
+        "https://www.pathofexile.com/fullscreen-passive-skill-tree/"
+        + base64.b64encode(bytes, altchars=b"-_").decode("utf-8")
+    )
+
+
+def add_tree_to_xml(xml, items_data, tree_data, jewel_coords):
+    char_details = items_data["character"]
+    tree = ET.SubElement(xml, "Tree", activeSpec="1")
+    spec = ET.SubElement(tree, "Spec", treeVersion=VERSION.replace(".", "_"))
+    url = ET.SubElement(spec, "URL")
+    tree_url = get_tree_url(char_details, tree_data["hashes"])
+    url.text = tree_url
+    sockets = ET.SubElement(spec, "Sockets")
+    for coord in jewel_coords:
+        ET.SubElement(
+            sockets,
+            "Socket",
+            nodeId=str(coord),
+            itemId=str(jewel_coords[coord]) if coord in jewel_coords else "0",
+        )
 
 
 def pob_profile_to_pob_code(items_data, tree_data):
@@ -226,7 +297,7 @@ def pob_profile_to_pob_code(items_data, tree_data):
         root,
         "Build",
         level=str(items_data["character"]["level"]),
-        targetVersion="3_17",
+        targetVersion=VERSION.replace(".", "_"),
         bandit="None",
         className=class_ids[items_data["character"]["classId"]],
         ascendClassName=items_data["character"]["class"],
@@ -238,7 +309,7 @@ def pob_profile_to_pob_code(items_data, tree_data):
     add_skills_to_xml(root, items_data["items"])
     all_items = [*items_data["items"], *tree_data["items"]]
     add_items_to_xml(root, all_items)
-    add_tree_to_xml(root)
+    add_tree_to_xml(root, items_data, tree_data, get_jewel_coords(tree_data))
     ET.SubElement(root, "Notes")
     ET.SubElement(
         root,
@@ -253,6 +324,7 @@ def pob_profile_to_pob_code(items_data, tree_data):
     ET.SubElement(root, "Config")
 
     tree = ET.ElementTree(root)
+    ET.indent(root, space=" ", level=0)
     tree.write("testing.xml")
 
 
