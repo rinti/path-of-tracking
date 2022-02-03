@@ -8,7 +8,7 @@ from typing import List
 PASSIVES_URL = "https://www.pathofexile.com/character-window/get-passive-skills?character={character}&accountName={account}"
 ITEMS_URL = "https://www.pathofexile.com/character-window/get-items?character={character}&accountName={account}"
 RARITY = ["NORMAL", "MAGIC", "RARE", "UNIQUE"]
-VERSION = "3.17"
+VERSION = "3.16"
 
 
 class PobGen:
@@ -191,7 +191,7 @@ class PobGen:
                 for crafted_mod in item["craftedMods"]:
                     item_string += "{crafted}" + crafted_mod + "\r\n"
 
-            xml_item = ET.SubElement(root_items, "Item")
+            xml_item = ET.SubElement(root_items, "Item", id=str(i))
             xml_item.text = "\r\n" + item_string
 
         #### Slots
@@ -259,6 +259,7 @@ class PobGen:
             "Spec",
             treeVersion=VERSION.replace(".", "_"),
             ascendClassId=str(self.items["character"]["ascendancyClass"]),
+            classId=str(self.items["character"]["classId"]),
             masteryEffects=masteries,
             nodes=",".join(map(str, self.passives["hashes"])),
         )
