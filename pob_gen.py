@@ -21,7 +21,7 @@ class PobGen:
             self.passives = self.fetch_passives(account_name, character_name)
             self.items = self.fetch_items(account_name, character_name)
             self.pob_profile_to_pob_code()
-    
+
     def write_xml(self, name="generated.xml"):
         tree = ET.ElementTree(self.root)
         ET.indent(self.root, space=" ", level=0)
@@ -251,8 +251,17 @@ class PobGen:
             ET.SubElement(root_items, "Slot", name=slot_name, item_id=str(item_id))
 
     def add_tree_to_xml(self, jewel_coords):
+        masteries = self.get_masteries()
+
         tree = ET.SubElement(self.root, "Tree", activeSpec="1")
-        spec = ET.SubElement(tree, "Spec", treeVersion=VERSION.replace(".", "_"))
+        spec = ET.SubElement(
+            tree,
+            "Spec",
+            treeVersion=VERSION.replace(".", "_"),
+            ascendClassId=str(self.items["character"]["ascendancyClass"]),
+            masteryEffects=masteries,
+            nodes=",".join(map(str, self.passives["hashes"])),
+        )
         url = ET.SubElement(spec, "URL")
         tree_url = self.get_tree_url()
         url.text = tree_url
@@ -264,6 +273,25 @@ class PobGen:
                 nodeId=str(coord),
                 itemId=str(jewel_coords[coord]) if coord in jewel_coords else "0",
             )
+
+    def get_masteries(self):
+        masteries = []
+
+        for k, v in self.passives["jewel_data"].items():
+            if "subgraph" in v:
+                masteries.extend(
+                    map(
+                        lambda x: (x[0], x[1]["skill"]),
+                        filter(
+                            lambda x: x[1].get("isMastery"),
+                            v["subgraph"]["nodes"].items(),
+                        ),
+                    )
+                )
+
+        return f",".join(
+            "{" + "{one},{two}".format(one=x[0], two=x[1]) + "}" for x in masteries
+        )
 
     def get_tree_url(self):
         header = [
